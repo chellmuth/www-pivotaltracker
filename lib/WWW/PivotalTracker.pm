@@ -7,10 +7,8 @@ use parent 'Exporter';
 
 use Perl6::Parameters;
 
-use aliased 'HTTP::Message';
 use aliased 'HTTP::Request';
 use aliased 'LWP::UserAgent';
-use aliased 'XML::Tidy';
 
 use Carp qw/
     croak
