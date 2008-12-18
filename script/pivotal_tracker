@@ -1,0 +1,150 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Perl6::Parameters;
+
+use Data::Dumper;
+
+use Getopt::Long::Descriptive qw/ :all /;
+
+use aliased 'Config::Any' => 'Config';
+use aliased 'File::HomeDir';
+
+=head1 NAME
+
+pivotal_tracker - Command-line interface to http://pivotaltracker.com
+
+=head1 SYNOPSIS
+
+pivotal_tracker [options]
+
+ General options:
+   --help                Brief help
+   --man                 Full documentation
+   -v --verbose          Make noise
+   -p --project-id       Project ID to query/update
+   -i --story-id         Story ID to query/update
+   -A --all-stories      Show all stories for project
+
+ Options for story creation:
+   -S --story            Story title to create
+   -b --requested-by     Who requested the story
+   -l --label            Label to apply (May appear more than once, or be a single comma separated list
+   --unscheduled         Story has not been scheduled, and is in the icebox
+   --unstarted           Story is in the backlog
+   --started             Work has started on the story
+   --finished            Work has been completed on the story
+   --delivered           The story has been delivered for review
+   --accepted            The story has been accepted after review
+   --rejected            The story has been rejected after review
+   -e --estimate         Point estimate for story
+   -c --created_at       Date/Time story was created (Defaults to 'now')
+   --feature             Set story type to 'feature'
+   --release             Set story type to 'release'
+   --bug                 Set story type to 'bug'
+   --chore               Set story type to 'chore'
+   --gnu_getopt          auto_help
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+Print a brief help message and exit.
+
+=item B<--man>
+
+Print the man page, and exit.
+
+=item B<-v> B<--verbose>
+
+Show more verbose output.
+
+=item B<-p> B<--project-id>
+
+Use this Project ID, instead of the one speficied in the config file (if any).
+
+=back
+
+=head1 DESCRIPTION
+
+B<pivotal_tracker> provides
+
+=cut
+
+my $options_format = "usage: %c %o";
+my @options = (
+    [                                                                                                         ],
+    [ 'General options:',                                                                                     ],
+    [ 'verbose|v'      => 'Make noise',                                                                       ],
+    [ 'project-id|p=i' => 'Project ID to query/update',                                                       ],
+    [ 'story-id|i=i'   => 'Story ID to query/update',                                                         ],
+    [ 'all-stories|A'  => 'Show all stories for project',                                                     ],
+    [                                                                                                         ],
+    [ 'Options for story creation:',                                                                          ],
+    [ 'story|S=s'        => 'Story title to create',                                                          ],
+    [ 'requested-by|b=s' => 'Who requested the story',                                                        ],
+    [ 'label|l=s'        => 'Label to apply (May appear more than once, or be a single comma separated list', ],
+    [ 'state=s'          => [
+            [ "unscheduled" => "Story has not been scheduled, and is in the icebox", ],
+            [ "unstarted"   => "Story is in the backlog",                            ],
+            [ "started"     => "Work has started on the story",                      ],
+            [ "finished"    => "Work has been completed on the story",               ],
+            [ "delivered"   => "The story has been delivered for review",            ],
+            [ "accepted"    => "The story has been accepted after review",           ],
+            [ "rejected"    => "The story has been rejected after review",           ],
+        ],
+    ],
+    [ 'estimate|e=s'   => "Point estimate for story",                        ],
+    [ 'created_at|c=s' => "Date/Time story was created (Defaults to 'now')", ],
+    [ 'story-type=s'   => [
+            [ "feature" => "Set story type to 'feature'", ],
+            [ "release" => "Set story type to 'release'", ],
+            [ "bug"     => "Set story type to 'bug'",     ],
+            [ "chore"   => "Set story type to 'chore'",   ],
+        ],
+    ],
+);
+
+sub _parse_config()
+{
+    my $cfg = Config->load_files({
+        files           => [HomeDir->my_home() . '/.pivotal_tracker.yml'],
+        flatten_to_hash => 1,
+        use_ext         => 1,
+    });
+
+    my $api_key;
+    my $current_user;
+
+    foreach my $file (keys %$cfg) {
+        $api_key      = $cfg->{$file}->{'General'}->{'APIKey'};
+        $current_user = $cfg->{$file}->{'General'}->{'Me'};
+    }
+
+    return {
+        api_key      => $api_key,
+        current_user => $current_user,
+    };
+}
+
+my ($opts, $usage) = describe_options(
+    $options_format,
+    @options,
+    {
+        getopt_conf => [
+            'gnu_getopt',
+            'auto_help',
+        ],
+    }
+);
+
+print Dumper($opts);
+
+my $cfg = _parse_config();
+
+print Dumper($cfg);
+
