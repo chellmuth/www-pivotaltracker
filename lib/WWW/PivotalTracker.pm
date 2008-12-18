@@ -92,7 +92,6 @@ sub add_story($token, $project_id, $story_details)
 {
     croak("Malformed Project ID: '$project_id'") unless __PACKAGE__->_check_project_id($project_id);
 
-    use Data::Dumper;
     foreach my $key (keys %$story_details) {
         croak("Unrecognized option: $key")
             unless _is_one_of($key, [qw/
