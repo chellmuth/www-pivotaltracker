@@ -32,16 +32,25 @@ pivotal_tracker [options]
    -v --verbose          Make noise
    -p --project-id       Project ID to query/update
    -P --project          Named project (from config file) to query/update
-      --list-projects    List all named projects, and their project IDs
    -i --story-id         Story ID to query/update
+
+ Actions:
+      --list-projects    List all named projects, and their project IDs
+      --show-project     Display the current settings for a project
+   -a --add-story        Add a new story
+   -d --delete-story     Delete an existing story
+   -s --show-story       Show single story
    -A --all-stories      Show all stories for project
+   -c --comment          Comment on story
+   -u --update-story     Update the details of a story
+      --deliver-all      Deliver all deliverable stories
 
  Story Options:
    -S --story            Story title to create
    -b --requested-by     Who requested the story
    -l --label            Label to apply (May appear more than once, or be a single comma separated list
    -e --estimate         Point estimate for story
-   -c --created-at       Date/Time story was created (Defaults to 'now')
+   -C --created-at       Date/Time story was created (Defaults to 'now')
 
  Story Type Options:
    --feature             Set story type to 'feature'
@@ -117,16 +126,25 @@ my @options = (
     [ 'verbose|v'      => 'Make noise',                                        ],
     [ 'project|P=s'    => 'Named project (from config file) to query/update',  ],
     [ 'project-id|p=i' => 'Project ID to query/update (Required unless --project is specified, or General.DefaultProject is set', ],
-    [ 'list-projects'  => 'List all named projects, and their project IDs',    ],
     [ 'story-id|i=i'   => 'Story ID to query/update',                          ],
+    [                                                                          ],
+    [ 'Actions',                                                               ],
+    [ 'list-projects'  => 'List all named projects, and their project IDs',    ],
+    [ 'show-project'   => 'Display the current settings for a project',        ],
+    [ 'add-story|a'    => 'Add a new story',                                   ],
+    [ 'delete-story|d' => 'Delete an existing story',                          ],
+    [ 'show-story|s'   => 'Show single story',                                 ],
     [ 'all-stories|A'  => 'Show all stories for project',                      ],
+    [ 'update-story|u' => 'Update the details of a story',                     ],
+    [ 'comment|c'      => 'Comment on story',                                  ],
+    [ 'deliver-all'    => 'Deliver all deliverable stories',                   ],
     [                                                                          ],
     [ 'Story Options:',                                                        ],
     [ 'story|S=s'        => 'Story title to create',                           ],
     [ 'requested-by|b=s' => 'Who requested the story',                         ],
     [ 'label|l=s@'       => 'Label to apply (May appear more than once, or be a single comma separated list', ],
     [ 'estimate|e=s'     => "Point estimate for story",                        ],
-    [ 'created-at|c=s'   => "Date/Time story was created (Defaults to 'now')", ],
+    [ 'created-at|C=s'   => "Date/Time story was created (Defaults to 'now')", ],
     [                                                                          ],
     [ 'Story Type Options:',                                                   ],
     [ 'story-type=s'   => [
