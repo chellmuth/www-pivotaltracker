@@ -8,6 +8,7 @@ use Perl6::Parameters;
 use Data::Dumper;
 
 use Getopt::Long::Descriptive qw/ :all      /;
+use Hash::Merge               qw/ merge     /;
 use Pod::Usage                qw/ pod2usage /;
 
 use aliased 'Config::Any' => 'Config';
@@ -138,15 +139,12 @@ sub _parse_config()
     my $api_key;
     my $current_user;
 
+    my $config = {};
     foreach my $file (keys %$cfg) {
-        $api_key      = $cfg->{$file}->{'General'}->{'APIKey'};
-        $current_user = $cfg->{$file}->{'General'}->{'Me'};
+        $config = merge($config, $cfg->{$file});
     }
 
-    return {
-        api_key      => $api_key,
-        current_user => $current_user,
-    };
+    return $config;
 }
 
 $Getopt::Long::Descriptive::MungeOptions = 1;
