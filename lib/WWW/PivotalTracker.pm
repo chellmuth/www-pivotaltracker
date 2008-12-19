@@ -160,7 +160,7 @@ sub _do_request($class, $token, $request_url, $request_method; $content)
         $content
     );
 
-    my $response = __PACKAGE__->_post_request($request);
+    my $response = $class->_post_request($request);
     croak($response->status_line()) unless ($response->is_success());
 
     print $response->content();
@@ -195,8 +195,8 @@ sub _make_xml($class, HASH $data)
     return XMLout(
         $data,
         AttrIndent => 0,
-        KeepRoot => 1,
-        NoAttr => 1
+        KeepRoot   => 1,
+        NoAttr     => 1,
     );
 }
 
