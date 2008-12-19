@@ -7,8 +7,8 @@ use parent 'Exporter';
 
 use Perl6::Parameters;
 
-use aliased 'HTTP::Request';
-use aliased 'LWP::UserAgent';
+use aliased 'HTTP::Request'  => '_Request';
+use aliased 'LWP::UserAgent' => '_UserAgent';
 
 use Carp qw/
     croak
@@ -150,7 +150,7 @@ sub _do_request($class, $token, $request_url, $request_method; $content)
 {
     my $base_url = "https://www.pivotaltracker.com/services/v1/";
 
-    my $request = Request->new(
+    my $request = _Request->new(
         $request_method,
         $base_url . $request_url,
         [
@@ -185,7 +185,7 @@ sub _do_request($class, $token, $request_url, $request_method; $content)
 
 sub _post_request($class, $request)
 {
-    my $ua = UserAgent->new();
+    my $ua = _UserAgent->new();
 
     return $ua->request($request);
 }
