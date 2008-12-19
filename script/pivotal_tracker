@@ -222,6 +222,18 @@ sub _display_error($result)
     printf("  %s\n", $_) foreach $result->{'errors'};
 }
 
+sub _display_project($project)
+{
+    my $project_text =
+          sprintf("               Name: %s\n", $project->{'name'})
+        . sprintf("        Point Scale: %s\n", $project->{'point_scale'})
+        . sprintf("   Iterations Start: %s\n", $project->{'week_start_day'})
+        . sprintf("Weeks per Iteration: %s\n", $project->{'iteration_weeks'})
+        . "\n";
+
+    print $project_text;
+}
+
 sub _display_story($story)
 {
     my $story_text =
@@ -269,6 +281,18 @@ sub _main()
 
     if (exists $opts->{'list_projects'}) {
         print _named_projects_string();
+    }
+    if (exists $opts->{'show_project'}) {
+        my $result = _get_project_details($project_id);
+
+        if (_response_was_successful($result)) {
+            _display_project($result);
+            exit 0;
+        }
+        else {
+            _display_error($result);
+            exit 1;
+        }
     }
     elsif (exists $opts->{'add_story'}) {
         my $result = _create_story({
