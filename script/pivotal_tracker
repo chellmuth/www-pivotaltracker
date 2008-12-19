@@ -13,6 +13,7 @@ use Pod::Usage                qw/ pod2usage /;
 use WWW::PivotalTracker qw/
     project_details
     add_story
+    delete_story
 /;
 
 use aliased 'Config::Any' => 'Config';
@@ -216,6 +217,17 @@ sub _create_story($story_opts)
     return $response;
 }
 
+sub _delete_story($story_opts)
+{
+    my $token = $cfg->{'General'}->{'APIKey'};
+    my $project_id = delete $story_opts->{'project_id'};
+    my $story_id = delete $story_opts->{'story_id'};
+
+    my $response = delete_story($token, $project_id, $story_id);
+
+    return $response;
+}
+
 sub _display_error($result)
 {
     print "Unable to process request:\n";
@@ -315,6 +327,22 @@ sub _main()
             exit 1;
         }
     }
+    elsif (exists $opts->{'delete_story'}) {
+        my $result = _delete_story({
+            project_id => $project_id,
+            story_id   => $opts->{'story_id'},
+        });
+
+        if (_response_was_successful($result)) {
+            print $result->{'message'} . "\n";
+            exit 0;
+        }
+        else {
+            _display_error($result);
+            exit 1;
+        }
+    }
+
 }
 
 _main();

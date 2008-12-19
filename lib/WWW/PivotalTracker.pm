@@ -52,6 +52,7 @@ if you don't export anything, such as for a purely object-oriented module.
 
 our @EXPORT_OK = qw/
     add_story
+    delete_story
     project_details
 /;
 
@@ -134,6 +135,32 @@ sub add_story($token, $project_id, $story_details)
         labels        => (exists $story->{'labels'} ? $story->{'labels'}->{'label'} : undef),
         url           => $story->{'url'},
     };
+}
+
+sub delete_story($token, $project_id, $story_id)
+{
+    croak("Malformed Project ID: '$project_id'") unless __PACKAGE__->_check_project_id($project_id);
+    croak("Malformed Project ID: '$project_id'") unless __PACKAGE__->_check_story_id($project_id);
+
+    my $response = __PACKAGE__->_do_request($token, "projects/$project_id/stories/$story_id", "DELETE", undef);
+
+    if (!defined $response || $response->{'success'} ne 'true') {
+        return {
+            success => 'false',
+            errors  => $response->{'errors'},
+        };
+    }
+
+    my $message = $response->{'message'};
+    return {
+        success => 'true',
+        message => $message,
+    };
+}
+
+sub _check_story_id($class, $story_id)
+{
+    return $story_id =~ m/^\d+$/ ? 1 : 0;
 }
 
 sub _check_project_id($class, $project_id)
