@@ -10,6 +10,10 @@ use Data::Dumper;
 use Getopt::Long::Descriptive qw/ :all      /;
 use Hash::Merge               qw/ merge     /;
 use Pod::Usage                qw/ pod2usage /;
+use WWW::PivotalTracker qw/
+    project_details
+    add_story
+/;
 
 use aliased 'Config::Any' => 'Config';
 use aliased 'File::HomeDir';
@@ -23,10 +27,12 @@ pivotal_tracker - Command-line interface to L<http://www.pivotaltracker.com>
 pivotal_tracker [options]
 
  General options:
-   --help                Brief help
-   --man                 Full documentation
+      --help             Brief help
+      --man              Full documentation
    -v --verbose          Make noise
    -p --project-id       Project ID to query/update
+   -P --project          Named project (from config file) to query/update
+      --list-projects    List all named projects, and their project IDs
    -i --story-id         Story ID to query/update
    -A --all-stories      Show all stories for project
 
@@ -35,7 +41,7 @@ pivotal_tracker [options]
    -b --requested-by     Who requested the story
    -l --label            Label to apply (May appear more than once, or be a single comma separated list
    -e --estimate         Point estimate for story
-   -c --created_at       Date/Time story was created (Defaults to 'now')
+   -c --created-at       Date/Time story was created (Defaults to 'now')
 
  Story Type Options:
    --feature             Set story type to 'feature'
@@ -80,6 +86,20 @@ B<pivotal_tracker> provides a command line interface to the Pivotal Tracker
 API (L<http://www.pivotaltracker.com/>).  This is meant to be used by humans.
 For a programmatic interface, please see L<WWW::PivotalTracker>.
 
+=head1 CONFIG
+
+B<~/.pivotal_tracker.yml> contains the configuration of default values, and 
+project name, to project ID mappings.
+
+ ---
+ General:
+     APIKey: 'c0ffe'
+     Me: Jacob Helwig
+     DefaultProject: Testing
+ Projects:
+     Testing: 1
+     Another Project: 2
+
 =head1 VERSION
 
 0.01 - 2008-12-18
@@ -90,23 +110,25 @@ our $VERSION = "0.01";
 
 my $options_format = "usage: %c %o";
 my @options = (
-    [                                                                                                         ],
-    [ 'General options:',                                                                                     ],
-    [ 'help'           => 'Show brief help',                                                                  ],
-    [ 'man'            => 'Full documentation',                                                               ],
-    [ 'verbose|v'      => 'Make noise',                                                                       ],
-    [ 'project-id|p=i' => 'Project ID to query/update',                                                       ],
-    [ 'story-id|i=i'   => 'Story ID to query/update',                                                         ],
-    [ 'all-stories|A'  => 'Show all stories for project',                                                     ],
-    [                                                                                                         ],
-    [ 'Story Options:',                                                                                       ],
-    [ 'story|S=s'        => 'Story title to create',                                                          ],
-    [ 'requested-by|b=s' => 'Who requested the story',                                                        ],
-    [ 'label|l=s'        => 'Label to apply (May appear more than once, or be a single comma separated list', ],
-    [ 'estimate|e=s'   => "Point estimate for story",                        ],
-    [ 'created_at|c=s' => "Date/Time story was created (Defaults to 'now')", ],
-    [                                                                                                         ],
-    [ 'Story Type Options:',                                                                                  ],
+    [                                                                          ],
+    [ 'General options:',                                                      ],
+    [ 'help'           => 'Show brief help',                                   ],
+    [ 'man'            => 'Full documentation',                                ],
+    [ 'verbose|v'      => 'Make noise',                                        ],
+    [ 'project|P=s'    => 'Named project (from config file) to query/update',  ],
+    [ 'project-id|p=i' => 'Project ID to query/update (Required unless --project is specified, or General.DefaultProject is set', ],
+    [ 'list-projects'  => 'List all named projects, and their project IDs',    ],
+    [ 'story-id|i=i'   => 'Story ID to query/update',                          ],
+    [ 'all-stories|A'  => 'Show all stories for project',                      ],
+    [                                                                          ],
+    [ 'Story Options:',                                                        ],
+    [ 'story|S=s'        => 'Story title to create',                           ],
+    [ 'requested-by|b=s' => 'Who requested the story',                         ],
+    [ 'label|l=s@'       => 'Label to apply (May appear more than once, or be a single comma separated list', ],
+    [ 'estimate|e=s'     => "Point estimate for story",                        ],
+    [ 'created-at|c=s'   => "Date/Time story was created (Defaults to 'now')", ],
+    [                                                                          ],
+    [ 'Story Type Options:',                                                   ],
     [ 'story-type=s'   => [
             [ "feature" => "Set story type to 'feature'", ],
             [ "release" => "Set story type to 'release'", ],
@@ -114,8 +136,8 @@ my @options = (
             [ "chore"   => "Set story type to 'chore'",   ],
         ],
     ],
-    [                                                                                                         ],
-    [ 'Story State Options:',                                                                                 ],
+    [                                                                          ],
+    [ 'Story State Options:',                                                  ],
     [ 'state=s'          => [
             [ "unscheduled" => "Story has not been scheduled, and is in the icebox", ],
             [ "unstarted"   => "Story is in the backlog",                            ],
@@ -136,9 +158,6 @@ sub _parse_config()
         use_ext         => 1,
     });
 
-    my $api_key;
-    my $current_user;
-
     my $config = {};
     foreach my $file (keys %$cfg) {
         $config = merge($config, $cfg->{$file});
@@ -147,25 +166,81 @@ sub _parse_config()
     return $config;
 }
 
-$Getopt::Long::Descriptive::MungeOptions = 1;
-my ($opts, $usage) = describe_options(
-    $options_format,
-    @options,
-    {
-        getopt_conf => [
-            'gnu_getopt',
-            'auto_abbrev',
-            'auto_version',
-        ],
-    }
-);
-
-pod2usage(1) if $opts->{'help'};
-pod2usage(-exitstatus => 0, -verbose => 2) if $opts->{'man'};
-
-print Dumper($opts);
-
 my $cfg = _parse_config();
 
 print Dumper($cfg);
 
+sub _named_projects_string()
+{
+    return "No named projects found." unless scalar keys %{$cfg->{'Projects'}};
+
+    my ($max_project_name) = sort { $b <=> $a } map { length($_) } keys %{$cfg->{'Projects'}};
+
+    my @projects = ();
+    foreach my $project (keys %{$cfg->{'Projects'}}) {
+        my $default_marker = $cfg->{'General'}->{'DefaultProject'} eq $project ? '*' : ' ';
+        push @projects, sprintf("%s%-" . $max_project_name . "s %s", $default_marker, $project, $cfg->{'Projects'}->{$project});
+    }
+
+    my $projects_text = "Configured Projects:\n\n"
+        . join("\n", @projects) . "\n";
+
+    return $projects_text;
+}
+
+sub _create_story($story_opts)
+{
+    my $token = $cfg->{'General'}->{'APIKey'};
+    my $project_id = delete $story_opts->{'project_id'};
+
+    my $response = add_story($token, $project_id, $story_opts);
+
+    print Dumper($response);
+}
+
+sub _main()
+{
+    $Getopt::Long::Descriptive::MungeOptions = 1;
+    my ($opts, $usage) = describe_options(
+        $options_format,
+        @options,
+        {
+            getopt_conf => [
+                'gnu_getopt',
+                'auto_abbrev',
+                'auto_version',
+            ],
+        }
+    );
+
+    pod2usage(1) if $opts->{'help'};
+    pod2usage(-exitstatus => 0, -verbose => 2) if $opts->{'man'};
+
+    print Dumper($opts);
+
+    my $project_id = exists $opts->{'project_id'}
+        ? $opts->{'project_id'}
+        : $cfg->{'Projects'}->{$cfg->{'General'}->{'DefaultProject'}};
+
+    if (exists $opts->{'list_projects'}) {
+        print _named_projects_string();
+    }
+    elsif (exists $opts->{'story'}) {
+        if (exists $opts->{'story_id'}) {
+        }
+        else {
+            _create_story({
+                project_id    => $project_id,
+                name          => $opts->{'story'},
+                requested_by  => ($opts->{'requested_by'} || $cfg->{'General'}->{'Me'}),
+                labels        => join(",", @{$opts->{'label'}}),
+                estimate      => $opts->{'estimate'},
+                created_at    => $opts->{'created_at'},
+                story_type    => $opts->{'story_type'},
+                current_state => $opts->{'state'},
+            });
+        }
+    }
+}
+
+_main();
