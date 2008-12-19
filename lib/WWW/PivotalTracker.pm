@@ -71,7 +71,7 @@ sub project_details($token, $project_id) {
     if (!defined $response || $response->{'success'} ne 'true') {
         return {
             success => 'false',
-            reason  => 'Epic fail!',
+            errors  => (defined $response && exists $response->{'errors'} ? $response->{'errors'} : 'Epic fail!'),
         };
     }
 
