@@ -299,7 +299,7 @@ sub _main()
             project_id    => $project_id,
             name          => $opts->{'story'},
             requested_by  => ($opts->{'requested_by'} || $cfg->{'General'}->{'Me'}),
-            labels        => join(",", @{$opts->{'label'}}),
+            labels        => join(",", @{[ $opts->{'label'} ]}),
             estimate      => $opts->{'estimate'},
             created_at    => $opts->{'created_at'},
             story_type    => $opts->{'story_type'},
