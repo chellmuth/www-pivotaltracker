@@ -7,7 +7,8 @@ use Perl6::Parameters;
 
 use Data::Dumper;
 
-use Getopt::Long::Descriptive qw/ :all /;
+use Getopt::Long::Descriptive qw/ :all      /;
+use Pod::Usage                qw/ pod2usage /;
 
 use aliased 'Config::Any' => 'Config';
 use aliased 'File::HomeDir';
@@ -160,6 +161,9 @@ my ($opts, $usage) = describe_options(
         ],
     }
 );
+
+pod2usage(1) if $opts->{'help'};
+pod2usage(-exitstatus => 0, -verbose => 2) if $opts->{'man'};
 
 print Dumper($opts);
 
